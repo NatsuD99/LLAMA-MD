@@ -45,6 +45,9 @@ class EmbeddingModel:
         embeddings = last_hidden_state[:, 0]
         return embeddings.cpu().numpy()
 
+    def __call__(self, docs: List[str], input_type: str) -> List[List[float]]:
+        return self.get_embeddings(docs, input_type)
+
 
 # Example usage
 if __name__ == "__main__":

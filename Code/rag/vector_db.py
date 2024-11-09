@@ -38,7 +38,7 @@ class VectorDB:
 
     def get_embedding(self, text: str) -> List[List[float]]:
         embedding_model = EmbeddingModel()
-        embeddings = embedding_model.get_embeddings([text], "document")
+        embeddings = embedding_model([text], "document")
         return embeddings
 
 
@@ -51,9 +51,18 @@ class VectorDB:
             self.pinecone_client.upsert(vectors=[{"id": pinecone_id,
                                                   "values": embedding,
                                                   "metadata": pinecone_metadata}], show_progress=True)
+    def search(self, query: str, top_k: int = 5):
+        query_embedding = self.get_embedding(query)
+        search_results = self.pinecone_client.query(queries=[query_embedding], top_k=top_k)
+        search_results = search_results[0]
+        search_results = search_results['matches']
+        search_results = [(match['id'], match['metadata']['text']) for match in search_results]
+        return search_results
 
+    def __call__(self, query: str, top_k: int = 5):
+        return self.search(query, top_k)
 
-# example usage
+# test
 if __name__ == '__main__':
     pinecone_key = os.getenv('PINECONE_API_KEY')
     pinecone_env = os.getenv('PINECONE_ENV')
