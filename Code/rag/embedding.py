@@ -1,6 +1,12 @@
+import os
 from typing import List
-from transformers import AutoModel, AutoTokenizer
+
+import boto3
+from botocore.exceptions import ClientError
+import json
 import torch
+from dotenv import load_dotenv
+from transformers import AutoModel, AutoTokenizer
 
 
 class EmbeddingModel:
@@ -17,11 +23,26 @@ class EmbeddingModel:
         # Load model and tokenizer
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # print(f"Using Model: {model_name}")
+
+    @staticmethod
+    def get_bedrock_key():
+        load_dotenv()
+        return os.getenv("AWS_ACCESS_KEY_ID"), os.getenv("AWS_SECRET_ACCESS_KEY"), os.getenv("AWS_SESSION_TOKEN")
+
+    def create_bedrock_client(self):
+        aws_access_key_id, aws_secret_access_key, aws_session_token = self.get_bedrock_key()
+        session = boto3.Session(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token
+        )
+        return session.client("bedrock-runtime", region_name="us-east-1")
 
     @torch.no_grad()
-    def get_embeddings(self, docs: List[str], input_type: str) -> List[List[float]]:
+    def _get_embeddings_huggingface(self, docs: List[str], input_type: str) -> List[List[float]]:
         """
-        Get embeddings using the UAE-Large-V1 model.
+        Get embeddings from huggingface model.
 
         Args:
             docs (List[str]): List of texts to embed
@@ -30,7 +51,6 @@ class EmbeddingModel:
         Returns:
             List[List[float]]: Array of embedddings
         """
-        # Prepend retrieval instruction to queries
         if input_type == "query":
             docs = ["{}{}".format(self.RETRIEVAL_INSTRUCT, q) for q in docs]
 
@@ -45,13 +65,55 @@ class EmbeddingModel:
         embeddings = last_hidden_state[:, 0]
         return embeddings.cpu().numpy()
 
+    def _get_embedding_bedrock(self, model_id, text):
+        """
+        Get embeddings using the Bedrock API.
+        :param model_id:
+        :param text:
+        :return: List[float]
+        """
+        print(f"Embedding from Bedrock for text: {text}")
+        # Body content structure for embedding API
+        body_content = {
+            "inputText": text
+        }
+        try:
+            client = self.create_bedrock_client()
+            response = client.invoke_model(
+                modelId=model_id,
+                contentType="application/json",
+                accept="application/json",
+                body=json.dumps(body_content)
+            )
+            response_body = json.loads(response['body'].read())
+            return response_body['embedding']
+        except ClientError as e:
+            print(f"An error occurred: {e}")
+            return None
+
+    def get_embeddings(self, docs: List[str], input_type: str, platform:str) -> List[List[float]]:
+        """
+        Get embeddings using the specified platform.
+        :param docs:
+        :param input_type:
+        :param platform:
+        :return: List[List[float]]
+        """
+        if platform == "huggingface":
+            return self._get_embeddings_huggingface(docs, input_type)
+        elif platform == "bedrock":
+            model_id = "amazon.titan-embed-text-v2:0"
+            return [self._get_embedding_bedrock(model_id, doc) for doc in docs]
+        else:
+            raise ValueError("Model not supported")
+
     def __call__(self, docs: List[str], input_type: str) -> List[List[float]]:
-        return self.get_embeddings(docs, input_type)
+        return self.get_embeddings(docs, input_type, "huggingface")
 
 
 # Example usage
 if __name__ == "__main__":
-    embedding_model = EmbeddingModel()
+    embedding_model = EmbeddingModel(model_name="dmis-lab/biobert-base-cased-v1.1")
     docs = ["The capital of France is Paris", "The capital of Spain is Madrid"]
-    embeddings = embedding_model.get_embeddings(docs, "document")
+    embeddings = embedding_model.get_embeddings(docs, "document" , "bedrock")
     print(embeddings)
