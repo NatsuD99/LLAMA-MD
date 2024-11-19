@@ -1,10 +1,10 @@
+import json
 import os
 from typing import List
 
 import boto3
-from botocore.exceptions import ClientError
-import json
 import torch
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from transformers import AutoModel, AutoTokenizer
 
@@ -91,7 +91,7 @@ class EmbeddingModel:
             print(f"An error occurred: {e}")
             return None
 
-    def get_embeddings(self, docs: List[str], input_type: str, platform:str) -> List[List[float]]:
+    def get_embeddings(self, docs: List[str], input_type: str, platform: str) -> List[List[float]]:
         """
         Get embeddings using the specified platform.
         :param docs:
@@ -107,13 +107,13 @@ class EmbeddingModel:
         else:
             raise ValueError("Model not supported")
 
-    def __call__(self, docs: List[str], input_type: str) -> List[List[float]]:
-        return self.get_embeddings(docs, input_type, "huggingface")
+    def __call__(self, docs: List[str], input_type: str, platform: str) -> List[List[float]]:
+        return self.get_embeddings(docs, input_type, platform)
 
 
 # Example usage
 if __name__ == "__main__":
     embedding_model = EmbeddingModel(model_name="dmis-lab/biobert-base-cased-v1.1")
     docs = ["The capital of France is Paris", "The capital of Spain is Madrid"]
-    embeddings = embedding_model.get_embeddings(docs, "document" , "bedrock")
+    embeddings = embedding_model.get_embeddings(docs, "document", "bedrock")
     print(embeddings)
