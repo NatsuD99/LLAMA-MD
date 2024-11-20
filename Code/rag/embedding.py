@@ -1,12 +1,11 @@
 import json
-import os
 from typing import List
 
-import boto3
 import torch
 from botocore.exceptions import ClientError
-from dotenv import load_dotenv
 from transformers import AutoModel, AutoTokenizer
+
+from utils import create_bedrock_client
 
 
 class EmbeddingModel:
@@ -24,20 +23,6 @@ class EmbeddingModel:
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # print(f"Using Model: {model_name}")
-
-    @staticmethod
-    def get_bedrock_key():
-        load_dotenv()
-        return os.getenv("AWS_ACCESS_KEY_ID"), os.getenv("AWS_SECRET_ACCESS_KEY"), os.getenv("AWS_SESSION_TOKEN")
-
-    def create_bedrock_client(self):
-        aws_access_key_id, aws_secret_access_key, aws_session_token = self.get_bedrock_key()
-        session = boto3.Session(
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            aws_session_token=aws_session_token
-        )
-        return session.client("bedrock-runtime", region_name="us-east-1")
 
     @torch.no_grad()
     def _get_embeddings_huggingface(self, docs: List[str], input_type: str) -> List[List[float]]:
@@ -78,7 +63,7 @@ class EmbeddingModel:
             "inputText": text
         }
         try:
-            client = self.create_bedrock_client()
+            client = create_bedrock_client()
             response = client.invoke_model(
                 modelId=model_id,
                 contentType="application/json",

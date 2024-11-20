@@ -1,20 +1,10 @@
 import json
 import os
 
-import boto3
 from botocore.exceptions import ClientError
 
 from vector_db import VectorDB
-
-
-def create_bedrock_client():
-    aws_access_key_id, aws_secret_access_key, aws_session_token = self.get_bedrock_key()
-    session = boto3.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        aws_session_token=aws_session_token
-    )
-    return session.client("bedrock-runtime", region_name="us-east-1")
+from utils import create_bedrock_client
 
 
 def get_response(query):
