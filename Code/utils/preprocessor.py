@@ -16,7 +16,7 @@ class DataProcessor:
     def clean_text(self, text: str) -> str:
         """Clean text by removing unwanted characters and formatting."""
         text = re.sub(r'\s+', ' ', text)  # Replace multiple whitespaces with single space
-        text = re.sub(r'\[.*?\]', '', text)  # Remove text within brackets
+        text = re.sub(r'\[\d+\]', '', text)  # Remove citation brackets
         text = text.replace('\n', ' ')  # Replace new lines with space
         text = re.sub(r'[^a-zA-Z0-9.,;:!?()\'\" ]', '',
                       text)  # Keep only some punctuation and alphanumeric characters
