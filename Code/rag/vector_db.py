@@ -21,6 +21,8 @@ class VectorDB:
         self.metric = metric
         self.pinecone_client = self.setup_pinecone()
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model = "WhereIsAI/UAE-Large-V1"
+        self.platform = "huggingface"
 
     def setup_pinecone(self):
         pc = Pinecone(api_key=self.pinecone_api_key)
@@ -37,8 +39,8 @@ class VectorDB:
         return pc.Index(self.index_name)
 
     def get_embedding(self, text: str) -> List[List[float]]:
-        embedding_model = EmbeddingModel()
-        embeddings = embedding_model([text], "document")
+        embedding_model = EmbeddingModel(model_name=self.model)
+        embeddings = embedding_model([text], "document",platform=self.platform)
         return embeddings
 
 
@@ -68,7 +70,7 @@ if __name__ == '__main__':
     pinecone_env = os.getenv('PINECONE_ENV')
     cloud = os.getenv('PINECONE_CLOUD')
     index_name = os.getenv('PINECONE_INDEX_NAME')
-    dimension = os.getenv('DIMENSION')
+    dimension = int(os.getenv('DIMENSION'))
     metric = os.getenv('METRIC')
 
     embedding_manager = VectorDB(
