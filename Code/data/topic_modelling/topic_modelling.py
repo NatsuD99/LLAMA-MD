@@ -50,4 +50,6 @@ df = preprocess_text(df)
 # Perform LSA
 for column_name in ['Description', 'Doctor', 'Patient']:
     lsa_topic_modelling(df[column_name].tolist(), column_name)
-print(topics_df)
+
+topics_df.to_excel('lsa_topics.xlsx', index=True)
+# print(topics_df)
