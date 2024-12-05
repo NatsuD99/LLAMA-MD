@@ -24,6 +24,11 @@ def preprocess_data(example):
 
 
 processed_dataset = dataset.map(preprocess_data)
+# print(dataset)
+# data_obj = processed_dataset['train']
+# print(data_obj)
+# print(data_obj.features['Description'])
+# print(data_obj.features['input_text'])
 
 login("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") # Put your hugggingface token here
 
@@ -41,7 +46,7 @@ def tokenize_data(example):
         example["input_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
     )
     outputs = tokenizer(
-        example["output_text"], max_length=128, padding="max_length", truncation=True, return_tensors="pt"
+        example["output_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
     )
     inputs["labels"] = outputs["input_ids"]
     return inputs
