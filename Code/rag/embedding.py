@@ -23,9 +23,11 @@ class EmbeddingModel:
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # print(f"Using Model: {model_name}")
-
+    @staticmethod
+    def emb_2_list(emb) -> List[float]:
+        return emb[0].tolist()
     @torch.no_grad()
-    def _get_embeddings_huggingface(self, docs: List[str], input_type: str) -> List[List[float]]:
+    def _get_embeddings_huggingface(self, docs: List[str], input_type: str) -> List[float]:
         """
         Get embeddings from huggingface model.
 
@@ -48,7 +50,7 @@ class EmbeddingModel:
 
         # Extract embeddings from the last hidden state
         embeddings = last_hidden_state[:, 0]
-        return embeddings.cpu().numpy()
+        return self.emb_2_list(embeddings.cpu().numpy())
 
     def _get_embedding_bedrock(self, model_id, text):
         """
@@ -76,7 +78,7 @@ class EmbeddingModel:
             print(f"An error occurred: {e}")
             return None
 
-    def get_embeddings(self, docs: List[str], input_type: str, platform: str) -> List[List[float]]:
+    def get_embeddings(self, docs: List[str], input_type: str, platform: str) -> List[float]:
         """
         Get embeddings using the specified platform.
         :param docs:
@@ -92,7 +94,7 @@ class EmbeddingModel:
         else:
             raise ValueError("Model not supported")
 
-    def __call__(self, docs: List[str], input_type: str, platform: str) -> List[List[float]]:
+    def __call__(self, docs: List[str], input_type: str, platform: str) -> List[float]:
         return self.get_embeddings(docs, input_type, platform)
 
 
@@ -100,5 +102,5 @@ class EmbeddingModel:
 if __name__ == "__main__":
     embedding_model = EmbeddingModel(model_name="dmis-lab/biobert-base-cased-v1.1")
     docs = ["The capital of France is Paris", "The capital of Spain is Madrid"]
-    embeddings = embedding_model.get_embeddings(docs, "document", "bedrock")
+    embeddings = embedding_model.get_embeddings(docs, "document", "huggingface")
     print(embeddings)
