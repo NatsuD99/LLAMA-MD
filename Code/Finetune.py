@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
 from torch.nn.utils.rnn import pad_sequence
 from huggingface_hub import login
+from tqdm import tqdm  # Import tqdm
 
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,8 +68,20 @@ train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=
 val_loader = DataLoader(val_dataset, batch_size=2, collate_fn=collate_fn)
 
 # 3. Load Model
-model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16)
+model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, use_cache=False)
 model.to(device)
+
+# Freeze Layers
+for name, param in model.named_parameters():
+    # Freeze the first few layers (example: freezing all layers up to 'transformer.h.10')
+    if name.split('.')[2] < str(10):
+        param.requires_grad = False
+    else:
+        param.requires_grad = True
+
+# Verify that the layers have been frozen
+for name, param in model.named_parameters():
+    print(f"Layer {name} - Requires Grad: {param.requires_grad}")
 
 # 4. Training Configuration
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
@@ -76,13 +89,16 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
 # Gradient Accumulation Settings
 gradient_accumulation_steps = 8  # Adjust this based on available GPU memory
 
-# Define Training Loop with Gradient Accumulation
+# Define Training Loop with Gradient Accumulation and Progress Bar
 def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
     model.train()
     total_loss = 0
     optimizer.zero_grad()
 
-    for i, batch in enumerate(dataloader):
+    # Create a tqdm progress bar for the training loop
+    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Training", ncols=100)
+
+    for i, batch in progress_bar:
         # Move inputs and labels to the device
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
@@ -101,16 +117,22 @@ def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
             optimizer.step()
             optimizer.zero_grad()
 
+        # Update the progress bar with the current loss
+        progress_bar.set_postfix(loss=loss.item())
+
     avg_loss = total_loss / len(dataloader)
     print(f"Training Loss: {avg_loss:.4f}")
     return avg_loss
 
-# Define Evaluation Loop
+# Define Evaluation Loop with Progress Bar
 def evaluate_model(model, dataloader, device):
     model.eval()
     total_loss = 0
     with torch.no_grad():
-        for batch in dataloader:
+        # Create a tqdm progress bar for the evaluation loop
+        progress_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Evaluating", ncols=100)
+
+        for batch in progress_bar:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
@@ -120,12 +142,15 @@ def evaluate_model(model, dataloader, device):
             loss = outputs.loss
             total_loss += loss.item()
 
+            # Update the progress bar with the current loss
+            progress_bar.set_postfix(loss=loss.item())
+
     avg_loss = total_loss / len(dataloader)
     print(f"Validation Loss: {avg_loss:.4f}")
     return avg_loss
 
 # 5. Training the Model
-num_epochs = 3
+num_epochs = 1
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
     train_epoch(model, train_loader, optimizer, device, gradient_accumulation_steps)
