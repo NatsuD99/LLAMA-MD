@@ -1,6 +1,3 @@
-# Install necessary libraries
-# !pip install torch transformers datasets
-
 import torch
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -15,31 +12,21 @@ print(f"Using device: {device}")
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
 
-
 # Preprocess Dataset
 def preprocess_data(example):
     input_text = f"{example['Description']} Patient: {example['Patient']}"
     output_text = example["Doctor"]
     return {"input_text": input_text, "output_text": output_text}
 
-
 processed_dataset = dataset.map(preprocess_data)
-# print(dataset)
-# data_obj = processed_dataset['train']
-# print(data_obj)
-# print(data_obj.features['Description'])
-# print(data_obj.features['input_text'])
 
-login("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") # Put your hugggingface token here
+login("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") # Put your huggingface token here
 
 # Tokenizer and Data Preparation
-# model_name = "tiiuae/falcon-7b-instruct"
 model_name = "meta-llama/Llama-3.2-1B"
-# model_name = "openlm-research/open_llama_7b"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-# Ensure the tokenizer has a pad token
 if tokenizer.pad_token is None:
-    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
 
 def tokenize_data(example):
     inputs = tokenizer(
@@ -51,14 +38,12 @@ def tokenize_data(example):
     inputs["labels"] = outputs["input_ids"]
     return inputs
 
-
 tokenized_dataset = processed_dataset.map(tokenize_data, batched=True)
 
 # Split Dataset into Train and Validation
 train_test_split = tokenized_dataset["train"].train_test_split(test_size=0.1)
 train_dataset = train_test_split["train"]
 val_dataset = train_test_split["test"]
-
 
 # 2. Custom Collate Function
 def collate_fn(batch):
@@ -77,26 +62,27 @@ def collate_fn(batch):
         "labels": labels
     }
 
-
 # DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
 val_loader = DataLoader(val_dataset, batch_size=2, collate_fn=collate_fn)
 
 # 3. Load Model
-model = AutoModelForCausalLM.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16)
 model.to(device)
 
 # 4. Training Configuration
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
 
+# Gradient Accumulation Settings
+gradient_accumulation_steps = 8  # Adjust this based on available GPU memory
 
-# Define Training Loop
-def train_epoch(model, dataloader, optimizer, device):
+# Define Training Loop with Gradient Accumulation
+def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
     model.train()
     total_loss = 0
-    for batch in dataloader:
-        optimizer.zero_grad()
+    optimizer.zero_grad()
 
+    for i, batch in enumerate(dataloader):
         # Move inputs and labels to the device
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
@@ -109,12 +95,15 @@ def train_epoch(model, dataloader, optimizer, device):
 
         # Backward pass
         loss.backward()
-        optimizer.step()
+
+        # Update weights after a set number of steps (gradient accumulation)
+        if (i + 1) % accumulation_steps == 0 or (i + 1) == len(dataloader):
+            optimizer.step()
+            optimizer.zero_grad()
 
     avg_loss = total_loss / len(dataloader)
     print(f"Training Loss: {avg_loss:.4f}")
     return avg_loss
-
 
 # Define Evaluation Loop
 def evaluate_model(model, dataloader, device):
@@ -135,18 +124,16 @@ def evaluate_model(model, dataloader, device):
     print(f"Validation Loss: {avg_loss:.4f}")
     return avg_loss
 
-
 # 5. Training the Model
 num_epochs = 3
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
-    train_epoch(model, train_loader, optimizer, device)
+    train_epoch(model, train_loader, optimizer, device, gradient_accumulation_steps)
     evaluate_model(model, val_loader, device)
 
 # Save the Model
 model.save_pretrained("./fine_tuned_model")
 tokenizer.save_pretrained("./fine_tuned_model")
-
 
 # Example Inference
 def generate_response(input_text):
@@ -155,7 +142,6 @@ def generate_response(input_text):
     outputs = model.generate(inputs["input_ids"], max_length=200, num_beams=5)
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return response
-
 
 example_input = "What are the symptoms of flu? Patient: I have a fever and a cough."
 print("Response:", generate_response(example_input))
