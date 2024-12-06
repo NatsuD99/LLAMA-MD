@@ -1,0 +1,28 @@
+According to American College of Obstetricians and Gynecologists, the main methods to calculate gestational age are:
+
+Directly calculating the days since the beginning of the last menstrual period
+Early obstetric ultrasound, comparing the size of an embryo or fetus to that of a reference group of pregnancies of known gestational age (such as calculated from last menstrual periods) and using the mean gestational age of other embryos or fetuses of the same size. If the gestational age as calculated from an early ultrasound is contradictory to the one calculated directly from the last menstrual period, it is still the one from the early ultrasound that is used for the rest of the pregnancy.
+In case of in vitro fertilization, calculating days since oocyte retrieval or co-incubation and adding 14 days.
+Gestational age can also be estimated by calculating days from ovulation if it was estimated from related signs or ovulation tests, and adding 14 days by convention.
+A more complete listing of methods is given in following table:
+
+As a general rule, the official gestational age should be based on the actual beginning of the last menstrual period, unless any of the above methods gives an estimated date that differs more than the variability for the method, in which case the difference cannot probably be explained by that variability alone. For example, if there is a gestational age based on the beginning of the last menstrual period of 9.0 weeks, and a first-trimester obstetric ultrasonography gives an estimated gestational age of 10.0 weeks (with a 2 SD variability of ±8% of the estimate, thereby giving a variability of ±0.8 weeks), the difference of 1.0 weeks between the tests is larger than the 2 SD variability of the ultrasonography estimate, indicating that the gestational age estimated by ultrasonography should be used as the official gestational age.
+Once the estimated due date (EDD) is established, it should rarely be changed, as the determination of gestational age is most accurate earlier in the pregnancy.
+Assessment of gestational age can be made based on selected head and trunk parameters. Following are diagrams for estimating gestational age from obstetric ultrasound, by various target parameters:
+
+The fertilization or conceptional age (also called embryonic age and later fetal age) is the time from the fertilization. It usually occurs within a day of ovulation, which, in turn, occurs on average 14.6 days after the beginning of the preceding menstruation (LMP). There is also considerable variability in this interval, with a 95% prediction interval of the ovulation of 9 to 20 days after menstruation even for an average woman who has a mean LMP-to-ovulation time of 14.6. In a reference group representing all women, the 95% prediction interval of the LMP-to-ovulation is 8.2 to 20.5 days. The actual variability between gestational age as estimated from the beginning of the last menstrual period (without the use of any additional method mentioned in previous section) is substantially larger because of uncertainty which menstrual cycle gave rise to the pregnancy. For example, the menstruation may be scarce enough to give the false appearance that an earlier menstruation gave rise to the pregnancy, potentially giving an estimated gestational age that is approximately one month too large. Also, vaginal bleeding occurs during 15–25% of first trimester pregnancies, and may be mistaken as menstruation, potentially giving an estimated gestational age that is too low.
+
+Gestational age is used for example for:
+
+The events of prenatal development, which usually occur at specific gestational ages. Hence, the gestational timing of a fetal toxin exposure, fetal drug exposure or vertically transmitted infection can be used to predict the potential consequences to the fetus.
+Estimated date of delivery
+Scheduling prenatal care
+Estimation of fetal viability
+Calculating the results of various prenatal tests, (for example, in the triple test).
+Birth classification into for example preterm, term or postterm.
+Classification of infant deaths and stillbirths
+Postnatally (after birth) to estimate various risk factors
+
+Child's gestational age at birth (pregnancy length) is associated with various likely causal maternal non-genetic factors: stress during pregnancy, age, parity, smoking, infection and inflammation, BMI. Also, preexisting maternal medical conditions with genetic component, e.g., diabetes mellitus type 1, systemic lupus erythematosus, anaemia. Parental ancestral background (race) also plays a role in pregnancy duration. Gestational age at birth is on average shortened by various pregnancy aspects: twin pregnancy, prelabor rupture of (fetal) membranes, pre-eclampsia, eclampsia, intrauterine growth restriction. The ratio between fetal growth rate and uterine size (reflecting uterine distension) is suspected to partially determine the pregnancy length.
+
+Family-based studies showed that gestational age at birth is partially (25–40%) determined by genetic factors.
