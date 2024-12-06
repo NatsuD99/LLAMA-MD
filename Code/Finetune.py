@@ -1,12 +1,11 @@
 import torch
-from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
-from torch.nn.utils.rnn import pad_sequence
 from huggingface_hub import login
+from peft import get_peft_model, LoraConfig, TaskType
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader
 from tqdm import tqdm
-from peft import get_peft_model, LoraConfig, TaskType, PeftModel
-
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -15,16 +14,58 @@ print(f"Using device: {device}")
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
 
+
 # Preprocess Dataset
 def preprocess_data(example):
-    input_text = example['Patient']
-    # input_text = f"<|begin_of_text|><|start_header_id|> system <|end_header_id|>Your are a proficient doctor specializing in Gynaecology.<|eot_id|><|start_header_id|>patient<|end_header_id|>{example['Patient']}<|eot_id|><|start_header_id|>doctor<|end_header_id|><|end_of_text|>"
-    output_text = example["Doctor"]
+    input_text = (f"<|begin_of_text|>"
+                  f"<|start_header_id|>"
+                  f"system"
+                  f"<|end_header_id|>"
+                  f"Your are a proficient doctor specializing in Gynaecology."
+                  f"<|eot_id|>"
+                  f"<|start_header_id|>"
+                  f"description"
+                  f"<|end_header_id|>"
+                  f"{example['Description']}"
+                  f"<|eot_id|>"
+                  f"<|start_header_id|>"
+                  f"patient"
+                  f"<|end_header_id|>"
+                  f"{example['Patient']}"
+                  f"<|eot_id|>"
+                  f"<|start_header_id|>"
+                  f"doctor"
+                  f"<|end_header_id|>"
+                  f"<|end_of_text|>")
+
+    output_text = (f"<|begin_of_text|>"
+                   f"<|start_header_id|>"
+                   f"system"
+                   f"<|end_header_id|>"
+                   f"Your are a proficient doctor specializing in Gynaecology."
+                   f"<|eot_id|>"
+                   f"<|start_header_id|>"
+                   f"description"
+                   f"<|end_header_id|>"
+                   f"{example['Description']}"
+                   f"<|eot_id|>"
+                   f"<|start_header_id|>"
+                   f"patient"
+                   f"<|end_header_id|>"
+                   f"{example['Patient']}"
+                   f"<|eot_id|>"
+                   f"<|start_header_id|>"
+                   f"doctor"
+                   f"<|end_header_id|>"
+                   f"{example["Doctor"]}"
+                   f"<|eot_id|>"
+                   f"<|end_of_text|>")
     return {"input_text": input_text, "output_text": output_text}
+
 
 processed_dataset = dataset.map(preprocess_data)
 
-login("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") # Put your huggingface token here
+login("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")  # Put your huggingface token here
 
 # Tokenizer and Data Preparation
 model_name = "meta-llama/Llama-3.2-1B"
@@ -33,15 +74,17 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 if tokenizer.pad_token is None:
     tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
 
+
 def tokenize_data(example):
     inputs = tokenizer(
-        example["input_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
+        example["input_text"], max_length=4096, padding="max_length", truncation=True, return_tensors="pt"
     )
     outputs = tokenizer(
-        example["output_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
+        example["output_text"], max_length=4096, padding="max_length", truncation=True, return_tensors="pt"
     )
     inputs["labels"] = outputs["input_ids"]
     return inputs
+
 
 tokenized_dataset = processed_dataset.map(tokenize_data, batched=True)
 
@@ -49,6 +92,7 @@ tokenized_dataset = processed_dataset.map(tokenize_data, batched=True)
 train_test_split = tokenized_dataset["train"].train_test_split(test_size=0.1)
 train_dataset = train_test_split["train"]
 val_dataset = train_test_split["test"]
+
 
 # 2. Custom Collate Function
 def collate_fn(batch):
@@ -67,6 +111,7 @@ def collate_fn(batch):
         "labels": labels,
     }
 
+
 # DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
 val_loader = DataLoader(val_dataset, batch_size=2, collate_fn=collate_fn)
@@ -77,22 +122,22 @@ model.to(device)
 
 lora_config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,  # Specify task type
-    inference_mode=False,          # Fine-tuning mode
-    r=8,                          # Low-rank dimension
-    lora_alpha=32,                 # Scaling factor
-    lora_dropout=0.1               # Dropout for LoRA layers
+    inference_mode=False,  # Fine-tuning mode
+    r=8,  # Low-rank dimension
+    lora_alpha=32,  # Scaling factor
+    lora_dropout=0.1  # Dropout for LoRA layers
 )
 model = get_peft_model(model, lora_config)
 # Verify LoRA configuration
 print("LoRA applied model:")
 model.print_trainable_parameters()
 
-
 # 4. Training Configuration
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
 
 # Gradient Accumulation Settings
 gradient_accumulation_steps = 8  # Adjust this based on available GPU memory
+
 
 # Define Training Loop with Gradient Accumulation and Progress Bar
 def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
@@ -130,6 +175,7 @@ def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
     print(f"Training Loss: {avg_loss:.4f}")
     return avg_loss
 
+
 # Define Evaluation Loop with Progress Bar
 def evaluate_model(model, dataloader, device):
     model.eval()
@@ -155,11 +201,16 @@ def evaluate_model(model, dataloader, device):
     print(f"Validation Loss: {avg_loss:.4f}")
     return avg_loss
 
+
 def save_model(model, tokenizer, save_path="./fine_tuned_model_lora"):
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
+
+
 def save_model_as_pt(model, save_path="./fine_tuned_model/model.pt"):
     torch.save(model.state_dict(), save_path)
+
+
 def load_model_from_pt(model_class, model_path, config_path):
     model = model_class.from_pretrained(config_path)
     model.load_state_dict(torch.load(model_path))
@@ -177,5 +228,5 @@ for epoch in range(num_epochs):
 # Save the Model
 model.save_pretrained("./fine_tuned_model_lora")
 tokenizer.save_pretrained("./fine_tuned_model_lora")
-save_model_as_pt(model, f"./fine_tuned_model_lora/lora_model_epoch_{epoch+1}.pt")
+save_model_as_pt(model, f"./fine_tuned_model_lora/lora_model_epoch_{epoch + 1}.pt")
 # torch.save(model, f"./fine_tuned_model_lora/lora_model.pt")
