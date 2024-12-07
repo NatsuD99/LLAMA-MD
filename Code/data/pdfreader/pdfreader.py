@@ -1,7 +1,7 @@
 import os
 from langchain.document_loaders import PDFPlumberLoader
-books_dir = os.path.join(os.path.dirname(__file__), '..',  'Books')
-output_dir = os.path.join(os.path.dirname(__file__), '..',  'Raw_Text')
+books_dir = os.path.join(os.path.dirname(__file__), '..','..',  'Books')
+output_dir = os.path.join(os.path.dirname(__file__), '..','..',  'Raw_Text')
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 # loop through files
