@@ -1,10 +1,12 @@
 import torch
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict, Dataset
 from torch.nn.utils.rnn import pad_sequence
 from huggingface_hub import login
-from tqdm import tqdm  # Import tqdm
+from tqdm import tqdm
+from peft import get_peft_model, LoraConfig, TaskType, PeftModel
+import random
 
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -12,10 +14,12 @@ print(f"Using device: {device}")
 
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
-
+# Sample 20% of the dataset
+dataset = dataset.filter(lambda example: random.random() < 0.002)
+print(dataset)
 # Preprocess Dataset
 def preprocess_data(example):
-    input_text = f"{example['Description']} Patient: {example['Patient']}"
+    input_text = example['Patient']
     output_text = example["Doctor"]
     return {"input_text": input_text, "output_text": output_text}
 
@@ -25,16 +29,17 @@ login("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") # Put your huggingface token here
 
 # Tokenizer and Data Preparation
 model_name = "meta-llama/Llama-3.2-1B"
+# model_name = "distilgpt2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 if tokenizer.pad_token is None:
     tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
 
 def tokenize_data(example):
     inputs = tokenizer(
-        example["input_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
+        example["input_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
     )
     outputs = tokenizer(
-        example["output_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
+        example["output_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
     )
     inputs["labels"] = outputs["input_ids"]
     return inputs
@@ -60,7 +65,7 @@ def collate_fn(batch):
     return {
         "input_ids": input_ids,
         "attention_mask": attention_mask,
-        "labels": labels
+        "labels": labels,
     }
 
 # DataLoaders
@@ -71,17 +76,18 @@ val_loader = DataLoader(val_dataset, batch_size=2, collate_fn=collate_fn)
 model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, use_cache=False)
 model.to(device)
 
-# Freeze Layers
-for name, param in model.named_parameters():
-    # Freeze the first few layers (example: freezing all layers up to 'transformer.h.10')
-    if name.split('.')[2] < str(10):
-        param.requires_grad = False
-    else:
-        param.requires_grad = True
+lora_config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,  # Specify task type
+    inference_mode=False,          # Fine-tuning mode
+    r=16,                          # Low-rank dimension
+    lora_alpha=32,                 # Scaling factor
+    lora_dropout=0.1               # Dropout for LoRA layers
+)
+model = get_peft_model(model, lora_config)
+# Verify LoRA configuration
+print("LoRA applied model:")
+model.print_trainable_parameters()
 
-# Verify that the layers have been frozen
-for name, param in model.named_parameters():
-    print(f"Layer {name} - Requires Grad: {param.requires_grad}")
 
 # 4. Training Configuration
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
@@ -111,6 +117,7 @@ def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
 
         # Backward pass
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
         # Update weights after a set number of steps (gradient accumulation)
         if (i + 1) % accumulation_steps == 0 or (i + 1) == len(dataloader):
@@ -132,7 +139,7 @@ def evaluate_model(model, dataloader, device):
         # Create a tqdm progress bar for the evaluation loop
         progress_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Evaluating", ncols=100)
 
-        for batch in progress_bar:
+        for i, batch in progress_bar:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
@@ -149,24 +156,27 @@ def evaluate_model(model, dataloader, device):
     print(f"Validation Loss: {avg_loss:.4f}")
     return avg_loss
 
+def save_model(model, tokenizer, save_path="./fine_tuned_model_lora"):
+    model.save_pretrained(save_path)
+    tokenizer.save_pretrained(save_path)
+def save_model_as_pt(model, save_path="./fine_tuned_model/model.pt"):
+    torch.save(model.state_dict(), save_path)
+def load_model_from_pt(model_class, model_path, config_path):
+    model = model_class.from_pretrained(config_path)
+    model.load_state_dict(torch.load(model_path))
+    return model
+
+
 # 5. Training the Model
-num_epochs = 1
+num_epochs = 3
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
     train_epoch(model, train_loader, optimizer, device, gradient_accumulation_steps)
     evaluate_model(model, val_loader, device)
+    save_model(model, tokenizer, f"./fine_tuned_model_lora_epoch_{epoch + 1}")
 
 # Save the Model
-model.save_pretrained("./fine_tuned_model")
-tokenizer.save_pretrained("./fine_tuned_model")
-
-# Example Inference
-def generate_response(input_text):
-    model.eval()
-    inputs = tokenizer(input_text, return_tensors="pt").to(device)
-    outputs = model.generate(inputs["input_ids"], max_length=200, num_beams=5)
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return response
-
-example_input = "What are the symptoms of flu? Patient: I have a fever and a cough."
-print("Response:", generate_response(example_input))
+model.save_pretrained("./fine_tuned_model_lora")
+tokenizer.save_pretrained("./fine_tuned_model_lora")
+save_model_as_pt(model, f"./fine_tuned_model_lora/lora_model_epoch_{epoch+1}.pt")
+# torch.save(model, f"./fine_tuned_model_lora/lora_model.pt")
