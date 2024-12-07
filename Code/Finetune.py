@@ -1,12 +1,12 @@
 import torch
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict, Dataset
 from torch.nn.utils.rnn import pad_sequence
 from huggingface_hub import login
 from tqdm import tqdm
 from peft import get_peft_model, LoraConfig, TaskType, PeftModel
-
+import random
 
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,11 +14,12 @@ print(f"Using device: {device}")
 
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
-
+# Sample 20% of the dataset
+dataset = dataset.filter(lambda example: random.random() < 0.2)
+print(dataset)
 # Preprocess Dataset
 def preprocess_data(example):
     input_text = example['Patient']
-    # input_text = f"<|begin_of_text|><|start_header_id|> system <|end_header_id|>Your are a proficient doctor specializing in Gynaecology.<|eot_id|><|start_header_id|>patient<|end_header_id|>{example['Patient']}<|eot_id|><|start_header_id|>doctor<|end_header_id|><|end_of_text|>"
     output_text = example["Doctor"]
     return {"input_text": input_text, "output_text": output_text}
 
@@ -35,10 +36,10 @@ if tokenizer.pad_token is None:
 
 def tokenize_data(example):
     inputs = tokenizer(
-        example["input_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
+        example["input_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
     )
     outputs = tokenizer(
-        example["output_text"], max_length=512, padding="max_length", truncation=True, return_tensors="pt"
+        example["output_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
     )
     inputs["labels"] = outputs["input_ids"]
     return inputs
@@ -167,7 +168,7 @@ def load_model_from_pt(model_class, model_path, config_path):
 
 
 # 5. Training the Model
-num_epochs = 1
+num_epochs = 3
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
     train_epoch(model, train_loader, optimizer, device, gradient_accumulation_steps)
