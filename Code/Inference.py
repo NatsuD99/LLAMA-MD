@@ -6,8 +6,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 model_name = "meta-llama/Llama-3.2-1B"
-# model = AutoModelForCausalLM.from_pretrained("./fine_tuned_model")
-# tokenizer = AutoTokenizer.from_pretrained("./fine_tuned_model")
+# model = AutoModelForCausalLM.from_pretrained("./fine_tuned_model_lora_epoch_1")
+# tokenizer = AutoTokenizer.from_pretrained("./fine_tuned_model_lora_epoch_1")
 model = AutoModelForCausalLM.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model.to(device)
