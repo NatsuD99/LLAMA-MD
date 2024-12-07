@@ -15,7 +15,7 @@ print(f"Using device: {device}")
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
 # Sample 20% of the dataset
-dataset = dataset.filter(lambda example: random.random() < 0.2)
+dataset = dataset.filter(lambda example: random.random() < 0.002)
 print(dataset)
 # Preprocess Dataset
 def preprocess_data(example):
@@ -79,7 +79,7 @@ model.to(device)
 lora_config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,  # Specify task type
     inference_mode=False,          # Fine-tuning mode
-    r=8,                          # Low-rank dimension
+    r=16,                          # Low-rank dimension
     lora_alpha=32,                 # Scaling factor
     lora_dropout=0.1               # Dropout for LoRA layers
 )
