@@ -77,10 +77,10 @@ if tokenizer.pad_token is None:
 
 def tokenize_data(example):
     inputs = tokenizer(
-        example["input_text"], max_length=4096, padding="max_length", truncation=True, return_tensors="pt"
+        example["input_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
     )
     outputs = tokenizer(
-        example["output_text"], max_length=4096, padding="max_length", truncation=True, return_tensors="pt"
+        example["output_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
     )
     inputs["labels"] = outputs["input_ids"]
     return inputs
