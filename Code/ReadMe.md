@@ -6,11 +6,13 @@
 ├── Code
 │   ├── data
 │   ├── finetune
+│   ├── models
 │   ├── rag
 │   ├── utils
+│   ├── .env
+│   ├── app.py
 │   ├── ReadMe.md
 │   ├── requirements.txt
-│   ├── app.py
 
 ```
 
@@ -48,7 +50,11 @@ This file converts pdf books on Pregnancy and Gynecology to raw texts files and 
 This file contains our code for finetuning the LLama model
 
 ### inference.py
-This file contains our code for inference using the finetuned model. 
+This file contains our code that loads the saved model and tokenizer of the finetuned model performs inference on it.
+
+## Models Directory
+
+This directory contains the pre-trained models used in the project.
 
 ## RAG Directory
 
