@@ -6,11 +6,13 @@
 ├── Code
 │   ├── data
 │   ├── finetune
+│   ├── models
 │   ├── rag
 │   ├── utils
+│   ├── .env
+│   ├── app.py
 │   ├── ReadMe.md
 │   ├── requirements.txt
-│   ├── app.py
 
 ```
 
@@ -40,6 +42,10 @@ This file contains our code for finetuning the LLama model
 
 ### inference.py
 This file contains our code for inference using the finetuned model. 
+
+## Models Directory
+
+This directory contains the pre-trained models used in the project.
 
 ## RAG Directory
 

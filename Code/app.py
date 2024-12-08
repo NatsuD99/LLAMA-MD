@@ -15,8 +15,8 @@ print(f"Using device: {device}")
 
 
 
-model = AutoModelForCausalLM.from_pretrained("./Model-selected")
-tokenizer = AutoTokenizer.from_pretrained("./Model-selected")
+model = AutoModelForCausalLM.from_pretrained("./models")
+tokenizer = AutoTokenizer.from_pretrained("./models")
 model.to(device)
 
 def doctor_response_finetune(question, max_length=300, temperature=0.8):
