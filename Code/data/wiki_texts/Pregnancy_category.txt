@@ -1,0 +1,18 @@
+American law requires that certain drugs and biological products must be labelled very specifically. Title 21, Part 201.57 (9)(i) of the Code of Federal Regulations lists specific requirements regarding the labeling of drugs with respect to their effects on pregnant populations, including a definition of a "pregnancy category". These rules are enforced by the Food and Drug Administration.
+To supplement this information, the FDA publishes additional rules regarding pregnancy and lactation labeling.
+The FDA does not regulate labeling for all hazardous and non-hazardous substances. Many substances, including alcohol, are widely known to cause serious hazards to pregnant women and their fetuses, including fetal alcohol syndrome. Many other pollutants and hazardous materials are similarly known to cause reproductive harm. However, some of these substances are not subject to drug labeling laws, and are therefore not assigned a "Pregnancy Category" per 21 CFR 201.57.
+
+One characteristic of the FDA definitions of the pregnancy categories is that the FDA requires a relatively large amount of high-quality data on a pharmaceutical for it to be defined as Pregnancy Category A. As a result of this, many drugs that would be labelled as safe in other countries are allocated to Category C by the FDA.
+
+Australia has a slightly different pregnancy category system from the United States. The categorisation of medicines for use in pregnancy does not follow a hierarchical structure.
+
+Notably the subdivision of Category B. (For drugs in B1, B2 and B3 categories, human data are lacking or inadequate and subcategorisation is actually based on animal data instead)
+The allocation of a B category does not imply greater safety than C category
+Medicines in category D are not absolutely contraindicated during pregnancy (e.g. anticonvulsants)
+The system, as outlined below, was developed by medical and scientific experts based on available evidence of risks associated with taking particular medicines while pregnant. Being general in nature, it is not presented as medical advice to health professionals or the public.
+Some prescribing guides, such as the Australian Medicines Handbook, are shifting away from using pregnancy categories since, inherent in these categories, there is an implied assumption that the alphabetical code is one of safety when this is not always the case. Categorisation does not indicate which stages of fetal development might be affected and does not convey information about the balance between risks and benefits in a particular situation. Additionally, categories are not necessarily maintained or updated with availability of new data.
+
+
+
+The data presented is for comparative and illustrative purposes only, and may have been superseded by updated data.
+
