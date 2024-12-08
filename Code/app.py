@@ -8,22 +8,18 @@ from rag.embedding import EmbeddingModel
 from rag.utils import create_bedrock_client
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
-
+import regex as re
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model_name = "meta-llama/Llama-3.2-1B"
 
-model = AutoModelForCausalLM.from_pretrained(model_name)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+model = AutoModelForCausalLM.from_pretrained("./Model-selected")
+tokenizer = AutoTokenizer.from_pretrained("./Model-selected")
 model.to(device)
 
-
-def generate_response(msg):
-    return "demo"
-
-def doctor_response(question, max_length=5000, temperature=0.5):
+def doctor_response_finetune(question, max_length=300, temperature=0.8):
     """
     Generates a doctor's response based on the patient's question.
 
@@ -31,14 +27,78 @@ def doctor_response(question, max_length=5000, temperature=0.5):
         question (str): The patient's question.
         max_length (int): The maximum token length of the response.
         temperature (float): Sampling temperature for diversity.
+        top_p (float): Nucleus sampling parameter.
 
     Returns:
         str: The doctor's response.
     """
     prompt = (
-        "Patient: {question}\n"
-        "Answer:".format(question=question)
+    "<System Prompt>\n"
+    "You are an expert medical doctor of the patient.\n"
+    "Read the patient's query and provide a clear, concise, and medically sound response.\n\n"
+    "Your answer should include:\n"
+    "- A diagnosis\n"
+    "- A recommended treatment plan or next steps\n\n"
+    "Do not repeat the patient's question. Avoid unnecessary disclaimers.\n"
+    "Keep your answer focused, authoritative, and helpful.\n"
+    "</System Prompt>\n\n"
+    "Query: {question}\n\n"
+    "Your Response:".format(question=question)
+)
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    outputs = model.generate(
+        inputs["input_ids"],
+        max_length=max_length,
+        temperature=temperature,
+        pad_token_id=tokenizer.eos_token_id,
+        eos_token_id=tokenizer.eos_token_id
     )
+    # Remove the input text from the generated output
+    generated_tokens = outputs[0]
+    input_length = inputs["input_ids"].shape[1]
+    output_final = generated_tokens[input_length:]
+    response = tokenizer.decode(output_final, skip_special_tokens=True)
+    return response
+def doctor_response_finetune_rag(query, max_length=300, temperature=0.8):
+    """
+    Generates a doctor's response based on the patient's question with context retrieved by RAG.
+
+    Parameters:
+        query (str): The patient's question.
+        max_length (int): The maximum token length of the response.
+        temperature (float): Sampling temperature for diversity.
+
+    Returns:
+        str: The doctor's response.
+    """
+
+     #Retrieve relevant context using the vector DB
+    vector_db = VectorDB(
+        pinecone_api_key=os.getenv("PINECONE_API_KEY"),
+        pinecone_env=os.getenv("PINECONE_ENV"),
+        index_name=os.getenv("PINECONE_INDEX_NAME"),
+        dimension=int(os.getenv("DIMENSION")),
+        metric=os.getenv("METRIC"),
+        cloud=os.getenv("PINECONE_CLOUD")
+    )
+
+    # Get the top-k relevant context documents from the vector DB
+    search_results = vector_db(query, top_k=5)
+    context = ""
+    for result in search_results.get('matches', []):
+        if 'metadata' in result and 'text' in result['metadata']:
+            context += result['metadata']['text'] + "\n"
+
+    if not context:
+        context = "No relevant context found."
+
+
+    prompt = f"""
+    Question: {query}
+    Context: {context}
+    Your Response as an expert doctor specializing in gynecology, obstetrics, and pregnancy:
+    """
+
 
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     outputs = model.generate(
@@ -48,60 +108,31 @@ def doctor_response(question, max_length=5000, temperature=0.5):
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id
     )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    if "Answer:" in response:
-        response = response.split("Answer:", 1)[-1].strip()
-    return response
+
+
+    generated_tokens = outputs[0]
+    input_length = inputs["input_ids"].shape[1]
+    output_final = generated_tokens[input_length:]
+
+
+    response = tokenizer.decode(output_final, skip_special_tokens=True)
+    return response.split("Question:")[1].strip() if "Question:" in response else response
 
 
 def handle_rag(query):
-    # Get Context
-    vector_db = VectorDB(
-        pinecone_api_key=os.getenv("PINECONE_API_KEY"),
-        pinecone_env=os.getenv("PINECONE_ENV"),
-        index_name=os.getenv("PINECONE_INDEX_NAME"),
-        dimension=int(os.getenv("DIMENSION")),
-        metric=os.getenv("METRIC"),
-        cloud=os.getenv("PINECONE_CLOUD")
-    )
-    search_results = vector_db(query, top_k=5)
-
-    # Prepare Prompt
-    prompt = f"""
-    If query is not related to gynacology, pregnancy, or obstetrics, answer with "I am a Gynacology Bot. I can't help you with this query."
-    If you cannot find context, answer with existing knowledge.
-    Question: {query}
-    Context: {search_results}
-    """
-    body_content = {
-        "prompt": prompt
-    }
-
-    # Get Response
-    try:
-        client = create_bedrock_client()
-        response = client.invoke_model(
-            modelId="meta.llama3-70b-instruct-v1:0",
-            body=json.dumps(body_content),
-        )
-        raw_response= response['body'].read()
-        cleaned_response = json.loads(raw_response).get("generation", "No response available.").strip()
-        return cleaned_response
-    except ClientError as e:
-        print(f"Error: {e}")
-        return "Error in processing the query. Please try again."
+    st.success("RAG Model Selected")
+    response=doctor_response_finetune_rag(query)
+    return response
 
 
 def handle_fine_tune(query):
     # Process user query in Fine Tune mode
-    return f"Fine Tune response for: {query}"
-
-
-def handle_base(query):
-    # Process user query in Base mode
-    # return f"Base mode response for: {query}"
-    response = doctor_response(query)
+    # return f"Fine Tune response for: {query}"
+    st.success("FineTune Model Selected")
+    response=doctor_response_finetune(query)
     return response
+
+
 
 def main():
     st.set_page_config(page_title="DR GPT", page_icon="🤖", layout="wide")
@@ -125,7 +156,7 @@ def main():
         # Dropdown selector
         option = st.selectbox(
             "Choose a mode:",
-            ("Select an option", "Fine Tune", "Base", "RAG"),
+            ("Select an option", "Fine Tune", "RAG"),
             index=0,
             help="Select a mode to activate the respective functionality.",
         )
@@ -134,8 +165,6 @@ def main():
         st.markdown("<div style='text-align: center; margin-top: 20px;'>", unsafe_allow_html=True)
         if st.button("Clear Chat"):
             st.session_state.messages = []
-
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # Main chat interface
     st.markdown(
@@ -180,11 +209,13 @@ def main():
 
             # Pass the user input to the selected function
             if st.session_state["selected_mode"] == "RAG":
+
                 response = handle_rag(prompt)
             elif st.session_state["selected_mode"] == "Fine Tune":
+
                 response = handle_fine_tune(prompt)
-            elif st.session_state["selected_mode"] == "Base":
-                response = handle_base(prompt)
+            # elif st.session_state["selected_mode"] == "Base":
+            #     response = handle_base(prompt)
             else:
                 st.warning("Please select a mode from the sidebar.")
                 return
