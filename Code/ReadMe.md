@@ -18,13 +18,22 @@
 
 ```bash
 ├── data
-│   ├── data.json
-│   ├── data.csv
-│   ├── data.txt
-│   ├── data.pkl
-│   ├── data.npy
-
+│   ├── pdfreader
+        ├── pdfreader.py
+│   ├── topic_modelling
+        ├── topic_modelling.py
+│   ├── wikipedia
+        ├── wiki_scrape.py
+│   ├── Raw_Text
 ```
+### topic_modelling.py
+This file reads the dataset from hugging face and returns the most common topics.
+
+### wiki_scrape.py
+This file scrapes extra data from wikipedia for our RAG
+
+### pdfreader.py
+This file converts pdf books on Pregnancy and Gynecology to raw texts files and saves it in Raw_Text. 
 
 ## Finetune Directory
 
@@ -49,7 +58,7 @@ This file contains our code for inference using the finetuned model.
 │   ├── vector_db.py
 │   ├── test.py
 │   ├── utils.py
-
+│   ├──pdf_data_extractor.py
 ```
 
 ### embeddings.py
@@ -75,6 +84,11 @@ This file contains the code to test the RAG.
 ### utils.py
  This file contains code to get response for the query from bedrock for RAG testing purpose.
 
+### pdf_data_extractor.py
+This file converts the raw text from the pdf books to embeddings and stores them in Pinecone.
+### wiki_data_extractor.py
+This file converts the raw text from wikipedia to embeddings and stores them in Pinecone.
+
 ## Utils Directory
 
 ```bash 
@@ -95,5 +109,5 @@ Code to preprocess the data for RAG.
 
 Run Command:
 ```bash
-streamlit run app.py
+streamlit run app.py --server.port 8888
 ```
