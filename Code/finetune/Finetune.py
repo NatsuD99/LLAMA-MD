@@ -15,7 +15,7 @@ print(f"Using device: {device}")
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
 # Sample 20% of the dataset
-dataset = dataset.filter(lambda example: random.random() < 0.002)
+dataset = dataset.filter(lambda example: random.random() < 0.003)
 print(dataset)
 # Preprocess Dataset
 def preprocess_data(example):
@@ -29,7 +29,6 @@ login("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") # Put your huggingface token here
 
 # Tokenizer and Data Preparation
 model_name = "meta-llama/Llama-3.2-1B"
-# model_name = "distilgpt2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 if tokenizer.pad_token is None:
     tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
