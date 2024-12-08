@@ -38,7 +38,7 @@ class VectorDB:
             )
         return pc.Index(self.index_name)
 
-    def get_embedding(self, text: str) -> List[List[float]]:
+    def get_embedding(self, text: str) -> [List[float]]:
         embedding_model = EmbeddingModel(model_name=self.model)
         embeddings = embedding_model([text], "document",platform=self.platform)
         return embeddings
@@ -54,11 +54,8 @@ class VectorDB:
                                                   "values": embedding,
                                                   "metadata": pinecone_metadata}], show_progress=True)
     def search(self, query: str, top_k: int = 5):
-        query_embedding = self.get_embedding(query)
-        search_results = self.pinecone_client.query(queries=[query_embedding], top_k=top_k)
-        search_results = search_results[0]
-        search_results = search_results['matches']
-        search_results = [(match['id'], match['metadata']['text']) for match in search_results]
+        query_embedding : List[float] = self.get_embedding(query)
+        search_results = self.pinecone_client.query(vector=query_embedding, top_k=top_k)
         return search_results
 
     def __call__(self, query: str, top_k: int = 5):
@@ -81,5 +78,7 @@ if __name__ == '__main__':
         dimension=dimension,
         metric=metric
     )
-    documents = [Document(page_content="hello", metadata={"source": "test"})]
-    embedding_manager.process_and_store_documents(documents)
+    # documents = [Document(page_content="chot bhai", metadata={"source": "test"})]
+    # embedding_manager.process_and_store_documents(documents)
+    search_results = embedding_manager("chot bhai", top_k=5)
+    print(search_results)
