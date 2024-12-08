@@ -64,7 +64,8 @@ This directory contains the pre-trained models used in the project.
 │   ├── vector_db.py
 │   ├── test.py
 │   ├── utils.py
-│   ├──pdf_data_extractor.py
+│   ├── pdf_data_extractor.py
+│   ├── wiki_data_extractor.py
 ```
 
 ### embeddings.py
