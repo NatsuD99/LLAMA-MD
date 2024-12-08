@@ -15,12 +15,53 @@ print(f"Using device: {device}")
 # 1. Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
 # Sample 20% of the dataset
-dataset = dataset.filter(lambda example: random.random() < 0.003)
+dataset = dataset.filter(lambda example: random.random() < 0.002)
 print(dataset)
 # Preprocess Dataset
 def preprocess_data(example):
-    input_text = example['Patient']
-    output_text = example["Doctor"]
+    input_text = (f"<|begin_of_text|>"
+                  f"<|start_header_id|>"
+                  f"system"
+                  f"<|end_header_id|>"
+                  f"Your are a proficient doctor specializing in Gynaecology."
+                  f"<|eot_id|>"
+                  f"<|start_header_id|>"
+                  f"description"
+                  f"<|end_header_id|>"
+                  f"{example['Description']}"
+                  f"<|eot_id|>"
+                  f"<|start_header_id|>"
+                  f"patient"
+                  f"<|end_header_id|>"
+                  f"{example['Patient']}"
+                  f"<|eot_id|>"
+                  f"<|start_header_id|>"
+                  f"doctor"
+                  f"<|end_header_id|>"
+                  f"<|end_of_text|>")
+
+    output_text = (f"<|begin_of_text|>"
+                   f"<|start_header_id|>"
+                   f"system"
+                   f"<|end_header_id|>"
+                   f"Your are a proficient doctor specializing in Gynaecology."
+                   f"<|eot_id|>"
+                   f"<|start_header_id|>"
+                   f"description"
+                   f"<|end_header_id|>"
+                   f"{example['Description']}"
+                   f"<|eot_id|>"
+                   f"<|start_header_id|>"
+                   f"patient"
+                   f"<|end_header_id|>"
+                   f"{example['Patient']}"
+                   f"<|eot_id|>"
+                   f"<|start_header_id|>"
+                   f"doctor"
+                   f"<|end_header_id|>"
+                   f"{example["Doctor"]}"
+                   f"<|eot_id|>"
+                   f"<|end_of_text|>")
     return {"input_text": input_text, "output_text": output_text}
 
 processed_dataset = dataset.map(preprocess_data)
@@ -29,6 +70,7 @@ login("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") # Put your huggingface token here
 
 # Tokenizer and Data Preparation
 model_name = "meta-llama/Llama-3.2-1B"
+# model_name = "distilgpt2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 if tokenizer.pad_token is None:
     tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
@@ -90,10 +132,8 @@ model.print_trainable_parameters()
 
 # 4. Training Configuration
 optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
-
 # Gradient Accumulation Settings
 gradient_accumulation_steps = 8  # Adjust this based on available GPU memory
-
 # Define Training Loop with Gradient Accumulation and Progress Bar
 def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
     model.train()
@@ -167,15 +207,15 @@ def load_model_from_pt(model_class, model_path, config_path):
 
 
 # 5. Training the Model
-num_epochs = 3
+num_epochs = 50
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
     train_epoch(model, train_loader, optimizer, device, gradient_accumulation_steps)
     evaluate_model(model, val_loader, device)
-    save_model(model, tokenizer, f"./fine_tuned_model_lora_epoch_{epoch + 1}")
+    # save_model(model, tokenizer, f"./fine_tuned_modelpf_lora_epoch_{epoch + 1}")
 
 # Save the Model
-model.save_pretrained("./fine_tuned_model_lora")
-tokenizer.save_pretrained("./fine_tuned_model_lora")
-save_model_as_pt(model, f"./fine_tuned_model_lora/lora_model_epoch_{epoch+1}.pt")
+model.save_pretrained("./fine_tuned_modelpf_lora")
+tokenizer.save_pretrained("./fine_tuned_modelpf_lora")
+save_model_as_pt(model, f"./fine_tuned_modelpf_lora/lora_modelpf_torch.pt")
 # torch.save(model, f"./fine_tuned_model_lora/lora_model.pt")
