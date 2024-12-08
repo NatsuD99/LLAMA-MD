@@ -78,7 +78,11 @@ if __name__ == '__main__':
         dimension=dimension,
         metric=metric
     )
-    # documents = [Document(page_content="chot bhai", metadata={"source": "test"})]
+
+    # Upserting a document
+    # documents = [Document(page_content="test", metadata={"source": "test"})]
     # embedding_manager.process_and_store_documents(documents)
-    search_results = embedding_manager("chot bhai", top_k=5)
+
+    # Searching for a query
+    search_results = embedding_manager("test", top_k=5)
     print(search_results)
