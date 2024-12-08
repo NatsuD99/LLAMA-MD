@@ -4,7 +4,7 @@ from typing import List
 import torch
 from langchain.schema import Document
 from pinecone import Pinecone, ServerlessSpec
-from embedding import EmbeddingModel
+from .embedding import EmbeddingModel
 from dotenv import load_dotenv
 load_dotenv()
 import os

@@ -5,7 +5,7 @@ import torch
 from botocore.exceptions import ClientError
 from transformers import AutoModel, AutoTokenizer
 
-from utils import create_bedrock_client
+from .utils import create_bedrock_client
 
 
 class EmbeddingModel:
