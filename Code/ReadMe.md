@@ -41,7 +41,7 @@
 This file contains our code for finetuning the LLama model
 
 ### inference.py
-This file contains our code for inference using the finetuned model. 
+This file contains our code that loads the saved model and tokenizer of the finetuned model performs inference on it.
 
 ## Models Directory
 
