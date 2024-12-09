@@ -50,6 +50,7 @@ def doctor_response_finetune(question, max_length=300, temperature=0.8):
         inputs["input_ids"],
         max_length=max_length,
         temperature=temperature,
+        repetition_penalty=1.2,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id
     )
@@ -58,6 +59,7 @@ def doctor_response_finetune(question, max_length=300, temperature=0.8):
     input_length = inputs["input_ids"].shape[1]
     output_final = generated_tokens[input_length:]
     response = tokenizer.decode(output_final, skip_special_tokens=True)
+    response = re.sub(r'<[^>]+>', '', response)
     return response
 def doctor_response_finetune_rag(query, max_length=300, temperature=0.8):
     """
@@ -97,6 +99,7 @@ def doctor_response_finetune_rag(query, max_length=300, temperature=0.8):
     Question: {query}
     Context: {context}
     Your Response as an expert doctor specializing in gynecology, obstetrics, and pregnancy:
+
     """
 
 
@@ -105,6 +108,7 @@ def doctor_response_finetune_rag(query, max_length=300, temperature=0.8):
         inputs["input_ids"],
         max_length=max_length,
         temperature=temperature,
+        repetition_penalty=1.2,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id
     )
@@ -116,6 +120,9 @@ def doctor_response_finetune_rag(query, max_length=300, temperature=0.8):
 
 
     response = tokenizer.decode(output_final, skip_special_tokens=True)
+    response= re.sub(r'<[^>]+>', '', response)
+
+
     return response.split("Question:")[1].strip() if "Question:" in response else response
 
 
@@ -131,21 +138,20 @@ def handle_fine_tune(query):
     st.success("FineTune Model Selected")
     response=doctor_response_finetune(query)
     return response
-
-
+# Set page config first
 
 def main():
-    st.set_page_config(page_title="DR GPT", page_icon="🤖", layout="wide")
+    st.set_page_config(page_title="HealthBot", page_icon="🤖", layout="wide")
 
     # Sidebar
     with st.sidebar:
-        st.markdown("## About DR GPT")
+        st.markdown("## About HealthBot ")
         st.write(
-            "DR GPT is a Gynecology and Obstetrics chatbot that can answer questions about pregnancy, childbirth"
+            "HealthBot is a Gynecology and Obstetrics chatbot that can answer questions about pregnancy, childbirth"
         )
 
         # Display tips
-        with st.expander("Tips for using DR GPT"):
+        with st.expander("Tips for using HealthBot"):
             st.info("""
             - Ask questions related to pregnancy, childbirth, and gynecology.
             - Be polite and respectful.
@@ -168,76 +174,55 @@ def main():
 
     # Main chat interface
     st.markdown(
-        "<h1 style='text-align: center; font-family: Arial; font-size: 36px; font-weight: bold;'>DR GPT - Your  🤖</h1>",
+        "<h1 style='text-align: center; font-family: Arial; font-size: 36px; font-weight: bold;'>HealthBot - Your Virtual Assistant 🤖</h1>",
         unsafe_allow_html=True)
 
     # Initialize session state
+
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
     # Display chat messages
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            st.markdown(
-                f"""
-                <div style='display: flex; align-items: flex-start; margin: 10px 0; justify-content: flex-end;'>
-                    <div style='text-align: left; padding: 10px; background-color: #f0f0f0; border-radius: 5px;'>
-                        {msg['content']}
-                    </div>
-                    <img src="https://img.icons8.com/ios-filled/50/000000/user.png" width="30" height="30" style='margin-left: 10px;' />
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            st.chat_message("user").markdown(msg["content"])
         elif msg["role"] == "assistant":
-            st.markdown(
-                f"""
-                <div style='display: flex; align-items: flex-start; margin: 10px 0;'>
-                    <div style='text-align: left; padding: 10px; background-color: #e0e0e0; border-radius: 5px; color: black;'>
-                        {msg['content']}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            st.chat_message("assistant").markdown(msg["content"])
 
     # Chat input
-    if prompt := st.chat_input("What would you like to know about pregnancy, childbirth, or gynecology?"):
+    prompt = st.chat_input("What would you like to know about pregnancy, childbirth, or gynecology?")
+
+    if prompt:
+        # Append the user's message
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.spinner("Dr. GPT is thinking... 🤔"):
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+    # Generate response after user input
+        with st.spinner("HealthBot is thinking... 🤔"):
             start_time = time.time()
 
-            # Pass the user input to the selected function
+        # Pass the user input to the selected function
             if st.session_state["selected_mode"] == "RAG":
-
                 response = handle_rag(prompt)
             elif st.session_state["selected_mode"] == "Fine Tune":
-
                 response = handle_fine_tune(prompt)
-            # elif st.session_state["selected_mode"] == "Base":
-            #     response = handle_base(prompt)
             else:
                 st.warning("Please select a mode from the sidebar.")
-                return
+                response = "Please select a mode."
 
             response_time = time.time() - start_time
 
+        # Append assistant's response
         st.session_state.messages.append({"role": "assistant", "content": response})
-        st.markdown(
-            f"""
-            <div style='display: flex; align-items: flex-start; margin: 10px 0;'>
-                <div style='text-align: left; padding: 10px; background-color: #e0e0e0; border-radius: 5px; color: black;'>
-                    {response}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+
+        # Display assistant's response
+        st.chat_message("assistant").markdown(response)
+
+        # Optionally show response time
         st.markdown(f"<p style='text-align: right; color: #888;'>Response time: {response_time:.2f}s</p>",
-                    unsafe_allow_html=True)
-
-
-
+                unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
