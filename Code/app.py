@@ -19,7 +19,7 @@ model = AutoModelForCausalLM.from_pretrained("./models")
 tokenizer = AutoTokenizer.from_pretrained("./models")
 model.to(device)
 
-def doctor_response_finetune(question, max_length=300, temperature=0.8):
+def doctor_response_finetune(question, max_length=300, temperature=0.6):
     """
     Generates a doctor's response based on the patient's question.
 
@@ -61,7 +61,7 @@ def doctor_response_finetune(question, max_length=300, temperature=0.8):
     response = tokenizer.decode(output_final, skip_special_tokens=True)
     response = re.sub(r'<[^>]+>', '', response)
     return response
-def doctor_response_finetune_rag(query, max_length=300, temperature=0.8):
+def doctor_response_finetune_rag(query, max_length=300, temperature=0.6):
     """
     Generates a doctor's response based on the patient's question with context retrieved by RAG.
 
@@ -141,17 +141,17 @@ def handle_fine_tune(query):
 # Set page config first
 
 def main():
-    st.set_page_config(page_title="HealthBot", page_icon="🤖", layout="wide")
+    st.set_page_config(page_title="LLAMA, MD", page_icon="🤖", layout="wide")
 
     # Sidebar
     with st.sidebar:
-        st.markdown("## About HealthBot ")
+        st.markdown("## About LLAMA, MD ")
         st.write(
-            "HealthBot is a Gynecology and Obstetrics chatbot that can answer questions about pregnancy, childbirth"
+            "LLAMA, MD is a Gynecology and Obstetrics chatbot that can answer questions about pregnancy, childbirth"
         )
 
         # Display tips
-        with st.expander("Tips for using HealthBot"):
+        with st.expander("Tips for using LLAMA, MD"):
             st.info("""
             - Ask questions related to pregnancy, childbirth, and gynecology.
             - Be polite and respectful.
@@ -174,7 +174,7 @@ def main():
 
     # Main chat interface
     st.markdown(
-        "<h1 style='text-align: center; font-family: Arial; font-size: 36px; font-weight: bold;'>HealthBot - Your Virtual Assistant 🤖</h1>",
+        "<h1 style='text-align: center; font-family: Arial; font-size: 36px; font-weight: bold;'>LLAMA, MD - Your Virtual Assistant 🤖</h1>",
         unsafe_allow_html=True)
 
     # Initialize session state
@@ -200,7 +200,7 @@ def main():
             st.markdown(prompt)
 
     # Generate response after user input
-        with st.spinner("HealthBot is thinking... 🤔"):
+        with st.spinner("LLAMA, MD is thinking... 🤔"):
             start_time = time.time()
 
         # Pass the user input to the selected function
