@@ -12,12 +12,11 @@ import random
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# 1. Load Dataset
+# Load Dataset
 dataset = load_dataset("ruslanmv/ai-medical-chatbot")
-# Sample 20% of the dataset
 dataset = dataset.filter(lambda example: random.random() < 0.002)
-print(dataset)
-# Preprocess Dataset
+# print(dataset)
+
 def preprocess_data(example):
     input_text = (f"<|begin_of_text|>"
                   f"<|start_header_id|>"
@@ -64,17 +63,6 @@ def preprocess_data(example):
                    f"<|end_of_text|>")
     return {"input_text": input_text, "output_text": output_text}
 
-processed_dataset = dataset.map(preprocess_data)
-
-login("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") # Put your huggingface token here
-
-# Tokenizer and Data Preparation
-model_name = "meta-llama/Llama-3.2-1B"
-# model_name = "distilgpt2"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-if tokenizer.pad_token is None:
-    tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
-
 def tokenize_data(example):
     inputs = tokenizer(
         example["input_text"], max_length=2048, padding="max_length", truncation=True, return_tensors="pt"
@@ -85,14 +73,7 @@ def tokenize_data(example):
     inputs["labels"] = outputs["input_ids"]
     return inputs
 
-tokenized_dataset = processed_dataset.map(tokenize_data, batched=True)
-
-# Split Dataset into Train and Validation
-train_test_split = tokenized_dataset["train"].train_test_split(test_size=0.1)
-train_dataset = train_test_split["train"]
-val_dataset = train_test_split["test"]
-
-# 2. Custom Collate Function
+# Custom Collate Function
 def collate_fn(batch):
     input_ids = [torch.tensor(example["input_ids"]) for example in batch]
     attention_mask = [torch.tensor(example["attention_mask"]) for example in batch]
@@ -109,32 +90,6 @@ def collate_fn(batch):
         "labels": labels,
     }
 
-# DataLoaders
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
-val_loader = DataLoader(val_dataset, batch_size=2, collate_fn=collate_fn)
-
-# 3. Load Model
-model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, use_cache=False)
-model.to(device)
-
-lora_config = LoraConfig(
-    task_type=TaskType.CAUSAL_LM,  # Specify task type
-    inference_mode=False,          # Fine-tuning mode
-    r=16,                          # Low-rank dimension
-    lora_alpha=32,                 # Scaling factor
-    lora_dropout=0.1               # Dropout for LoRA layers
-)
-model = get_peft_model(model, lora_config)
-# Verify LoRA configuration
-print("LoRA applied model:")
-model.print_trainable_parameters()
-
-
-# 4. Training Configuration
-optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
-# Gradient Accumulation Settings
-gradient_accumulation_steps = 8  # Adjust this based on available GPU memory
-# Define Training Loop with Gradient Accumulation and Progress Bar
 def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
     model.train()
     total_loss = 0
@@ -170,7 +125,6 @@ def train_epoch(model, dataloader, optimizer, device, accumulation_steps):
     print(f"Training Loss: {avg_loss:.4f}")
     return avg_loss
 
-# Define Evaluation Loop with Progress Bar
 def evaluate_model(model, dataloader, device):
     model.eval()
     total_loss = 0
@@ -193,6 +147,8 @@ def evaluate_model(model, dataloader, device):
 
     avg_loss = total_loss / len(dataloader)
     print(f"Validation Loss: {avg_loss:.4f}")
+    perplexity = torch.exp(torch.tensor(avg_loss))
+    print(f"Perplexity: {perplexity:.4f}")
     return avg_loss
 
 def save_model(model, tokenizer, save_path="./fine_tuned_model_lora"):
@@ -200,22 +156,53 @@ def save_model(model, tokenizer, save_path="./fine_tuned_model_lora"):
     tokenizer.save_pretrained(save_path)
 def save_model_as_pt(model, save_path="./fine_tuned_model/model.pt"):
     torch.save(model.state_dict(), save_path)
-def load_model_from_pt(model_class, model_path, config_path):
-    model = model_class.from_pretrained(config_path)
-    model.load_state_dict(torch.load(model_path))
-    return model
 
+login("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") # Put your huggingface token here
+processed_dataset = dataset.map(preprocess_data)
 
-# 5. Training the Model
-num_epochs = 50
+# Tokenizer and Data Preparation
+model_name = "meta-llama/Llama-3.2-1B"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+if tokenizer.pad_token is None:
+    tokenizer.add_special_tokens({'pad_token': '<|end_of_text|>'})
+tokenized_dataset = processed_dataset.map(tokenize_data, batched=True)
+
+# Split Dataset into Train and Validation
+train_test_split = tokenized_dataset["train"].train_test_split(test_size=0.1)
+train_dataset = train_test_split["train"]
+val_dataset = train_test_split["test"]
+
+# DataLoaders
+train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
+val_loader = DataLoader(val_dataset, batch_size=2, collate_fn=collate_fn)
+# Load Model
+model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, use_cache=False)
+model.to(device)
+
+lora_config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,  # Specify task type
+    inference_mode=False,          # Fine-tuning mode
+    r=16,                          # Low-rank dimension
+    lora_alpha=32,                 # Scaling factor
+    lora_dropout=0.1               # Dropout for LoRA layers
+)
+model = get_peft_model(model, lora_config)
+print("LoRA applied model:")
+model.print_trainable_parameters()
+
+optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
+# Gradient Accumulation Settings, adjust this based on available GPU memory
+gradient_accumulation_steps = 8
+
+# Training the Model
+num_epochs = 10
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
     train_epoch(model, train_loader, optimizer, device, gradient_accumulation_steps)
     evaluate_model(model, val_loader, device)
-    # save_model(model, tokenizer, f"./fine_tuned_modelpf_lora_epoch_{epoch + 1}")
+    save_model(model, tokenizer, f"./fine_tuned_modelpf_lora_epoch_{epoch + 1}")
 
 # Save the Model
 model.save_pretrained("./fine_tuned_modelpf_lora")
 tokenizer.save_pretrained("./fine_tuned_modelpf_lora")
-save_model_as_pt(model, f"./fine_tuned_modelpf_lora/lora_modelpf_torch.pt")
-# torch.save(model, f"./fine_tuned_model_lora/lora_model.pt")
+# save_model_as_pt(model, f"./fine_tuned_modelpf_lora/lora_modelpf_torch.pt")
