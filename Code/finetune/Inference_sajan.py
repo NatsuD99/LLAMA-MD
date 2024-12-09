@@ -71,7 +71,7 @@ if __name__ == "__main__":
     # user_input = input("You (Patient): ")
     # user_input = "I randomly get nauseatic and I have been constantly vomiting for the last few days. I also have a mild fever. What do you think is wrong with me?"
     # user_input = "Hi doctor,I am just wondering what is abutting and abutment of the nerve root means in a back issue. Please explain. What treatment is required for annular bulging and tear?"
-    # user_input = "Hi doctor, what food should I eat in my third trimester?"
-    user_input = "I have a sharp pain in my chest that radiates to my left arm. I feel dizzy and short of breath. What should I do?"
+    user_input = "Hi doctor, what food should I eat in my third trimester?"
+    # user_input = "I have a sharp pain in my chest that radiates to my left arm. I feel dizzy and short of breath. What should I do?"
     answer = doctor_response(user_input)
     print(answer)
