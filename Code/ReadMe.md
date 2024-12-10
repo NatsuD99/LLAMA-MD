@@ -118,3 +118,5 @@ Run Command:
 ```bash
 streamlit run app.py --server.port 8888
 ```
+
+Note: Please make sure to add `.env` file to connect to our vector database.
