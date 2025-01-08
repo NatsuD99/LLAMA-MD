@@ -18,7 +18,7 @@ To set up the project locally, follow these steps:
 
    ```bash
    git clone https://github.com/NatsuD99/LLAMA-MD.git
-   cd LLAMA-MD
+   cd LLAMA-MD/Code
 
 2. **Install the required dependencies**
    ```bash
