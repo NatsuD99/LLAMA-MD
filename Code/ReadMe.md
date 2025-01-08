@@ -1,4 +1,4 @@
-# Dr. GPT
+# LLAMA, MD: AI Specializing in Gynecology
 
 ## Directory Structure
 ```bash
